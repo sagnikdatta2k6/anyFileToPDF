@@ -23,3 +23,11 @@ def convert_txt_to_pdf(input_file, output_file):
     pdf.multi_cell(0, 10, text)
     pdf.output(output_file)
     print(f"Converted TXT to PDF: {output_file}")
+
+
+# Convert Image file to PDF
+def convert_image_to_pdf(input_file, output_file):
+    image = Image.open(input_file)
+    pdf = image.convert("RGB")
+    pdf.save(output_file)
+    print(f"Converted Image to PDF: {output_file}")
