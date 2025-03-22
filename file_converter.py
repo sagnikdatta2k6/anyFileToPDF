@@ -63,3 +63,35 @@ def convert_excel_to_pdf(input_file, output_file):
     print(f"Converted Excel to PDF: {output_file}")
 
 
+# Convert PowerPoint file to PDF
+def convert_pptx_to_pdf(input_file, output_file, format_type=32):
+    if not POWERPOINT_INSTALLED:
+        print("Error: comtypes module not installed. PowerPoint conversion will not work.")
+        return
+    
+    if not os.path.exists(input_file):
+        print(f"Error: File '{input_file}' not found.")
+        return
+
+    try:
+        powerpoint = comtypes.client.CreateObject("Powerpoint.Application")
+        powerpoint.Visible = 1
+
+        input_file = os.path.abspath(input_file)
+        output_file = os.path.abspath(output_file)
+
+        presentation = powerpoint.Presentations.Open(input_file, WithWindow=False)
+        presentation.SaveAs(output_file, format_type)
+        presentation.Close()
+        powerpoint.Quit()
+
+        print(f"Converted PowerPoint to PDF: {output_file}")
+
+    except Exception as e:
+        print(f"Error converting PPTX to PDF: {e}")
+        try:
+            powerpoint.Quit()
+        except:
+            pass
+
+
