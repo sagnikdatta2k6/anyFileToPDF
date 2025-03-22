@@ -31,3 +31,17 @@ def convert_image_to_pdf(input_file, output_file):
     pdf = image.convert("RGB")
     pdf.save(output_file)
     print(f"Converted Image to PDF: {output_file}")
+
+
+# Convert Word file to PDF
+def convert_docx_to_pdf(input_file, output_file):
+    doc = Document(input_file)
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+    
+    for para in doc.paragraphs:
+        pdf.multi_cell(0, 10, para.text)
+    
+    pdf.output(output_file)
+    print(f"Converted DOCX to PDF: {output_file}")
