@@ -45,3 +45,21 @@ def convert_docx_to_pdf(input_file, output_file):
     
     pdf.output(output_file)
     print(f"Converted DOCX to PDF: {output_file}")
+
+
+# Convert Excel file to PDF
+def convert_excel_to_pdf(input_file, output_file):
+    wb = openpyxl.load_workbook(input_file)
+    sheet = wb.active
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+    
+    for row in sheet.iter_rows(values_only=True):
+        line = "\t".join(str(cell) for cell in row if cell is not None)
+        pdf.multi_cell(0, 10, line)
+    
+    pdf.output(output_file)
+    print(f"Converted Excel to PDF: {output_file}")
+
+
