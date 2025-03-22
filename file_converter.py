@@ -95,3 +95,31 @@ def convert_pptx_to_pdf(input_file, output_file, format_type=32):
             pass
 
 
+# Convert file to PDF based on file extension
+def convert_file_to_pdf(input_file, output_file):
+    file_extension = os.path.splitext(input_file)[1].lower()
+
+    if not os.path.exists(input_file):
+        print(f"Error: File '{input_file}' not found.")
+        return
+
+    if file_extension == '.txt':
+        convert_txt_to_pdf(input_file, output_file)
+    elif file_extension in ['.jpg', '.jpeg', '.png']:
+        convert_image_to_pdf(input_file, output_file)
+    elif file_extension == '.docx':
+        convert_docx_to_pdf(input_file, output_file)
+    elif file_extension == '.xlsx':
+        convert_excel_to_pdf(input_file, output_file)
+    elif file_extension == '.pptx':
+        convert_pptx_to_pdf(input_file, output_file)
+    else:
+        print(f"Unsupported file type: {file_extension}")
+
+# Example usage
+if __name__ == "__main__":
+    input_file = r"sample_file.pptx"
+    output_file = r"converted_file.pdf"
+
+    convert_file_to_pdf(input_file, output_file)
+    print(f"Conversion complete. Output saved as {output_file}")
