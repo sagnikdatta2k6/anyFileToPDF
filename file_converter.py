@@ -4,6 +4,7 @@ import os
 from docx import Document
 from docx.shared import Inches
 import openpyxl
+import pdfplumber
 
 try:
     import comtypes.client
@@ -15,6 +16,7 @@ import fitz  # PyMuPDF
 from pptx import Presentation
 from pptx.util import Inches
 from io import BytesIO
+from openpyxl import Workbook
 
 
 def convert_txt_to_pdf(input_file, output_file):
@@ -116,6 +118,27 @@ def convert_pdf_to_pptx(input_file, output_file):
     print(f"Converted PDF to PPTX with images: {output_file}")
 
 
+def convert_pdf_to_excel(input_file, output_file):
+    with pdfplumber.open(input_file) as pdf:
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Extracted Tables"
+        row_index = 1
+        table_found = False
+        for page in pdf.pages:
+            tables = page.extract_tables()
+            for table in tables:
+                table_found = True
+                for row in table:
+                    ws.append(row)
+                row_index += len(table) + 1
+        if table_found:
+            wb.save(output_file)
+            print(f"Converted PDF tables to Excel: {output_file}")
+        else:
+            print("No tables detected in the PDF.")
+
+
 def convert_file(input_file, output_file):
     file_extension = os.path.splitext(input_file)[1].lower()
     if not os.path.exists(input_file):
@@ -139,6 +162,8 @@ def convert_file(input_file, output_file):
             convert_pdf_to_docx(input_file, output_file)
         elif output_file.lower().endswith('.pptx'):
             convert_pdf_to_pptx(input_file, output_file)
+        elif output_file.lower().endswith('.xlsx'):
+            convert_pdf_to_excel(input_file, output_file)
         else:
             print(f"Unsupported output format for PDF source: {output_file}")
     else:
@@ -146,8 +171,8 @@ def convert_file(input_file, output_file):
 
 
 # Example usage
-input_file = r"Sagnik.pdf"
-output_file = r"sagnik_converted.docx"
+input_file = r"sample-tables.pdf"
+output_file = r"sample-tables_table.xlsx"
 
 convert_file(input_file, output_file)
 print(f"Conversion complete. Output saved as {output_file}")
