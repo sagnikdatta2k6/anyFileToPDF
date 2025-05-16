@@ -77,7 +77,7 @@ def convert_pptx_to_pdf(input_file, output_file, format_type=32):
         except:
             pass
 
-# (Other conversion functions remain the same, ensure they use output_file as absolute path)
+# Add other conversion functions here as needed, ensuring output_file is used as absolute path
 
 def convert_file(input_file, output_file):
     input_file = os.path.abspath(input_file)
@@ -101,8 +101,5 @@ def convert_file(input_file, output_file):
             convert_pptx_to_pdf(input_file, output_file)
         else:
             print(f"Unsupported input file type for PDF conversion: {file_extension}")
-    elif file_extension == '.pdf':
-        # Add your PDF to other formats conversions here if needed
-        print("PDF to other formats conversion not implemented in this example.")
     else:
         print(f"Unsupported conversion from {file_extension} to {os.path.splitext(output_file)[1].lower()}")

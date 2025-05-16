@@ -1,10 +1,10 @@
 import streamlit as st
 import os
-from file_converter import convert_file  # Make sure this is your conversion module
+from file_converter import convert_file  # Make sure this matches your file_converter.py location
 
 # Get the Desktop path of the current user
 desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
-os.makedirs(desktop_path, exist_ok=True)  # Ensure Desktop folder exists (usually does)
+os.makedirs(desktop_path, exist_ok=True)  # Ensure Desktop folder exists
 
 st.title("File to PDF Converter - Save Files to Desktop")
 
