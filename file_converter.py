@@ -17,7 +17,7 @@ import shutil
 
 # Set these paths as needed for your system:
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-POPPLER_PATH = r'C:\Program Files\poppler-23.11.0\Library\bin'  # Update if needed
+POPPLER_PATH = r'C:\Program Files\poppler-23.11.0\Library\bin'  # Update this path
 
 # TXT to PDF
 def convert_txt_to_pdf(input_file, output_file):
