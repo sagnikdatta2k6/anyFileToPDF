@@ -1,35 +1,34 @@
 import streamlit as st
 import os
-from file_converter import convert_file  # Make sure this matches your file_converter.py location
+from file_converter import convert_file  # Adjust import if needed
 
-# Get the Desktop path of the current user
-desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
-os.makedirs(desktop_path, exist_ok=True)  # Ensure Desktop folder exists
+# Temporary folder to save files during the session
+TEMP_DIR = "temp_files"
+os.makedirs(TEMP_DIR, exist_ok=True)
 
-st.title("File to PDF Converter - Save Files to Desktop")
+st.title("File to PDF Converter with Manual Download")
 
 uploaded_file = st.file_uploader("Upload a file")
 
 if uploaded_file is not None:
-    # Save uploaded file to Desktop
-    input_path = os.path.join(desktop_path, uploaded_file.name)
+    # Save uploaded file temporarily
+    input_path = os.path.join(TEMP_DIR, uploaded_file.name)
     with open(input_path, "wb") as f:
         f.write(uploaded_file.getbuffer())
-    st.success(f"Uploaded file saved at: {input_path}")
+    st.success(f"Uploaded file saved temporarily.")
 
-    # Define output PDF file path on Desktop
     base_name, _ = os.path.splitext(uploaded_file.name)
-    output_path = os.path.join(desktop_path, base_name + ".pdf")
+    output_path = os.path.join(TEMP_DIR, base_name + ".pdf")
 
     try:
-        # Convert the file using your conversion function
+        # Convert the file
         convert_file(input_path, output_path)
-        st.success(f"Converted file saved at: {output_path}")
+        st.success("File converted successfully!")
 
-        # Provide a download button for convenience
+        # Provide download button for the converted file
         with open(output_path, "rb") as f:
             st.download_button(
-                label="Download Converted PDF",
+                label="Click here to download the converted PDF",
                 data=f,
                 file_name=os.path.basename(output_path),
                 mime="application/pdf"
