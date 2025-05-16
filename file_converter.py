@@ -53,13 +53,13 @@ def convert_excel_to_pdf(input_file, output_file):
     pdf.output(output_file)
     print(f"Converted Excel to PDF: {output_file}")
 
-def convert_pptx_to_pdf(input_file, output_file, format_type=32):
+def convert_pptx_to_pdf(input_file, output_file):
     if not POWERPOINT_INSTALLED:
         print("Error: comtypes module not installed. PowerPoint conversion will not work.")
-        return
+        return False
     if not os.path.exists(input_file):
         print(f"Error: File '{input_file}' not found.")
-        return
+        return False
     try:
         powerpoint = comtypes.client.CreateObject("Powerpoint.Application")
         powerpoint.Visible = 1
@@ -67,7 +67,6 @@ def convert_pptx_to_pdf(input_file, output_file, format_type=32):
         input_file_abs = os.path.abspath(input_file)
         output_file_abs = os.path.abspath(output_file)
 
-        # Ensure output file has .pdf extension
         if not output_file_abs.lower().endswith('.pdf'):
             output_file_abs += '.pdf'
 
@@ -75,14 +74,16 @@ def convert_pptx_to_pdf(input_file, output_file, format_type=32):
         print(f"Saving PDF to: {output_file_abs}")
 
         presentation = powerpoint.Presentations.Open(input_file_abs, WithWindow=False)
-        presentation.SaveAs(output_file_abs, format_type)
+        presentation.SaveAs(output_file_abs, 32)  # 32 = PDF format
         presentation.Close()
         powerpoint.Quit()
 
         if os.path.exists(output_file_abs):
             print(f"Converted PowerPoint to PDF successfully: {output_file_abs}")
+            return True
         else:
             print(f"Failed to create PDF at: {output_file_abs}")
+            return False
 
     except Exception as e:
         print(f"Error converting PPTX to PDF: {e}")
@@ -90,20 +91,37 @@ def convert_pptx_to_pdf(input_file, output_file, format_type=32):
             powerpoint.Quit()
         except:
             pass
+        return False
 
 def convert_file(input_file, output_file):
     input_file = os.path.abspath(input_file)
     output_file = os.path.abspath(output_file)
 
     file_extension = os.path.splitext(input_file)[1].lower()
+    output_extension = os.path.splitext(output_file)[1].lower()
+
     if not os.path.exists(input_file):
         print(f"Error: File '{input_file}' not found.")
-        return
+        return False
 
-    if output_file.lower().endswith('.pdf'):
+    if output_extension == '.pdf':
         if file_extension == '.txt':
             convert_txt_to_pdf(input_file, output_file)
+            return True
         elif file_extension in ['.jpg', '.jpeg', '.png']:
             convert_image_to_pdf(input_file, output_file)
+            return True
         elif file_extension == '.docx':
             convert_docx_to_pdf(input_file, output_file)
+            return True
+        elif file_extension == '.xlsx':
+            convert_excel_to_pdf(input_file, output_file)
+            return True
+        elif file_extension == '.pptx':
+            return convert_pptx_to_pdf(input_file, output_file)
+        else:
+            print(f"Unsupported input file type for PDF conversion: {file_extension}")
+            return False
+    else:
+        print(f"Unsupported output format: {output_extension}")
+        return False
