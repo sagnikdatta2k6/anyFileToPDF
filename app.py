@@ -5,7 +5,7 @@ from file_converter import convert_file
 TEMP_DIR = "temp_files"
 os.makedirs(TEMP_DIR, exist_ok=True)
 
-st.title("File Converter (Coding Only)")
+st.title("File Converter (with PowerPoint Automation)")
 
 uploaded_file = st.file_uploader("Upload a file")
 

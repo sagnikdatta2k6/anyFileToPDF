@@ -4,8 +4,15 @@ from PIL import Image, ImageDraw, ImageFont
 from docx import Document
 import openpyxl
 from pptx import Presentation
-from pptx.util import Inches
 from io import BytesIO
+
+# For PPTX to PDF/PNG using Microsoft PowerPoint (Windows only)
+try:
+    import win32com.client
+    import pythoncom
+    POWERPOINT_AUTOMATION = True
+except ImportError:
+    POWERPOINT_AUTOMATION = False
 
 # TXT to PDF
 def convert_txt_to_pdf(input_file, output_file):
@@ -85,37 +92,39 @@ def convert_docx_to_excel(input_file, output_file):
         ws.cell(row=i, column=1, value=para.text)
     wb.save(output_file)
 
-# PPTX to PDF (slides as images in PDF)
+# PPTX to PDF (using PowerPoint automation)
 def convert_pptx_to_pdf(input_file, output_file):
-    prs = Presentation(input_file)
-    pdf = FPDF()
-    for slide in prs.slides:
-        img = slide_to_image(slide, prs)
-        img_buffer = BytesIO()
-        img.save(img_buffer, format='PNG')
-        img_buffer.seek(0)
-        pdf.add_page()
-        pdf.image(img_buffer, x=10, y=10, w=180)
-    pdf.output(output_file)
+    if not POWERPOINT_AUTOMATION:
+        raise RuntimeError("pywin32 is not installed or not available on this system.")
+    pythoncom.CoInitialize()
+    powerpoint = win32com.client.Dispatch("PowerPoint.Application")
+    powerpoint.Visible = 1
+    input_file_abs = os.path.abspath(input_file)
+    output_file_abs = os.path.abspath(output_file)
+    presentation = powerpoint.Presentations.Open(input_file_abs, WithWindow=False)
+    presentation.SaveAs(output_file_abs, 32)  # 32 = PDF format
+    presentation.Close()
+    powerpoint.Quit()
+    pythoncom.CoUninitialize()
 
-# PPTX to IMAGE (first slide as PNG)
-def convert_pptx_to_image(input_file, output_file):
-    prs = Presentation(input_file)
-    img = slide_to_image(prs.slides[0], prs)
-    img.save(output_file)
-
-def slide_to_image(slide, prs):
-    # Create a blank image with slide dimensions
-    width, height = int(prs.slide_width // 9525), int(prs.slide_height // 9525)
-    image = Image.new('RGB', (width, height), 'white')
-    draw = ImageDraw.Draw(image)
-    # Placeholder: Draw slide title and content text
-    y = 10
-    for shape in slide.shapes:
-        if hasattr(shape, "text"):
-            draw.text((10, y), shape.text, fill='black')
-            y += 20
-    return image
+# PPTX to PNG (using PowerPoint automation, exports all slides)
+def convert_pptx_to_png(input_file, output_file):
+    if not POWERPOINT_AUTOMATION:
+        raise RuntimeError("pywin32 is not installed or not available on this system.")
+    pythoncom.CoInitialize()
+    powerpoint = win32com.client.Dispatch("PowerPoint.Application")
+    powerpoint.Visible = 1
+    input_file_abs = os.path.abspath(input_file)
+    output_dir = os.path.dirname(output_file)
+    base_name = os.path.splitext(os.path.basename(output_file))[0]
+    presentation = powerpoint.Presentations.Open(input_file_abs, WithWindow=False)
+    # Export all slides as PNGs
+    for i in range(1, presentation.Slides.Count + 1):
+        slide = presentation.Slides(i)
+        slide.Export(os.path.join(output_dir, f"{base_name}_slide{i}.png"), "PNG", 1920, 1080)
+    presentation.Close()
+    powerpoint.Quit()
+    pythoncom.CoUninitialize()
 
 # EXCEL to PDF
 def convert_excel_to_pdf(input_file, output_file):
@@ -185,7 +194,7 @@ def convert_file(input_file, output_file):
         ('.docx', '.png'): convert_docx_to_image,
         ('.docx', '.xlsx'): convert_docx_to_excel,
         ('.pptx', '.pdf'): convert_pptx_to_pdf,
-        ('.pptx', '.png'): convert_pptx_to_image,
+        ('.pptx', '.png'): convert_pptx_to_png,
         ('.xlsx', '.pdf'): convert_excel_to_pdf,
         ('.xlsx', '.docx'): convert_excel_to_docx,
         ('.xlsx', '.txt'): convert_excel_to_txt,
