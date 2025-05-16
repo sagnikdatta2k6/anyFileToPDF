@@ -29,7 +29,7 @@ MIME_TYPES = {
 st.title("Universal File Converter")
 
 def main():
-    uploaded_file = st.file_uploader("Upload a file", type=SUPPORTED_FORMATS.keys())
+    uploaded_file = st.file_uploader("Upload a file", type=list(SUPPORTED_FORMATS.keys()))
     
     if uploaded_file:
         file_name = uploaded_file.name
@@ -62,6 +62,7 @@ def main():
                 success = convert_file(input_path, output_path)
                 
                 if success:
+                    # For ZIP, verify contents before allowing download
                     if output_format == 'zip':
                         with open(output_path, 'rb') as f:
                             zip_bytes = f.read()

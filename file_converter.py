@@ -4,20 +4,22 @@ import tempfile
 import pythoncom
 import win32com.client
 import pytesseract
+import textwrap
+import pandas as pd
+import matplotlib.pyplot as plt
 from io import BytesIO
 from fpdf import FPDF
+from pdf2image import convert_from_path
 from PIL import Image, ImageDraw, ImageFont
 from docx import Document
 import openpyxl
-from pptx import Presentation
 import shutil
 
-# Set Tesseract path (Windows users: change this to your Tesseract installation path)
+# Set these paths as needed for your system:
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+POPPLER_PATH = r'C:\Program Files\poppler-23.11.0\Library\bin'  # Update if needed
 
-# ========================
-# TEXT CONVERSIONS
-# ========================
+# TXT to PDF
 def convert_txt_to_pdf(input_file, output_file):
     with open(input_file, 'r', encoding='utf-8') as file:
         text = file.read()
@@ -27,6 +29,7 @@ def convert_txt_to_pdf(input_file, output_file):
     pdf.multi_cell(0, 10, text)
     pdf.output(output_file)
 
+# TXT to DOCX
 def convert_txt_to_docx(input_file, output_file):
     with open(input_file, 'r', encoding='utf-8') as file:
         text = file.read()
@@ -34,31 +37,47 @@ def convert_txt_to_docx(input_file, output_file):
     doc.add_paragraph(text)
     doc.save(output_file)
 
+# TXT to PNG (improved)
 def convert_txt_to_image(input_file, output_file):
-    with open(input_file, 'r', encoding='utf-8') as file:
-        text = file.read()
-    font = ImageFont.load_default()
-    lines = text.split('\n')
-    max_width = max(font.getsize(line)[0] for line in lines) + 20
-    line_height = font.getsize('A')[1] + 5
-    img_height = line_height * len(lines) + 20
-    image = Image.new('RGB', (max_width, img_height), color='white')
-    draw = ImageDraw.Draw(image)
-    y = 10
-    for line in lines:
-        draw.text((10, y), line, font=font, fill='black')
-        y += line_height
-    image.save(output_file)
+    try:
+        with open(input_file, 'r', encoding='utf-8') as file:
+            text = file.read()
+        font_path = "cour.ttf" if os.path.exists("cour.ttf") else None
+        font_size = 14
+        line_spacing = 1.2
+        margin = 20
+        chars_per_line = 80
+        lines = []
+        for paragraph in text.split('\n'):
+            lines.extend(textwrap.wrap(paragraph, width=chars_per_line, replace_whitespace=False))
+        if font_path:
+            font = ImageFont.truetype(font_path, font_size)
+        else:
+            font = ImageFont.load_default()
+        max_width = max(font.getsize(line)[0] for line in lines) if lines else 0
+        total_height = int(len(lines) * font_size * line_spacing)
+        img_width = max_width + 2*margin
+        img_height = total_height + 2*margin
+        image = Image.new('RGB', (img_width, img_height), color='white')
+        draw = ImageDraw.Draw(image)
+        y = margin
+        for line in lines:
+            draw.text((margin, y), line, font=font, fill='black')
+            y += int(font_size * line_spacing)
+        image.save(output_file)
+        return True
+    except Exception as e:
+        print(f"TXT to PNG Error: {e}")
+        return False
 
-# ========================
-# DOCX CONVERSIONS
-# ========================
+# DOCX to TXT
 def convert_docx_to_txt(input_file, output_file):
     doc = Document(input_file)
     with open(output_file, 'w', encoding='utf-8') as f:
         for para in doc.paragraphs:
             f.write(para.text + '\n')
 
+# DOCX to PDF
 def convert_docx_to_pdf(input_file, output_file):
     doc = Document(input_file)
     pdf = FPDF()
@@ -68,21 +87,22 @@ def convert_docx_to_pdf(input_file, output_file):
         pdf.multi_cell(0, 10, para.text)
     pdf.output(output_file)
 
+# DOCX to PNG (via PDF intermediate)
 def convert_docx_to_image(input_file, output_file):
-    doc = Document(input_file)
-    text = '\n'.join([para.text for para in doc.paragraphs])
-    font = ImageFont.load_default()
-    lines = text.split('\n')
-    max_width = max(font.getsize(line)[0] for line in lines) + 20
-    line_height = font.getsize('A')[1] + 5
-    img_height = line_height * len(lines) + 20
-    image = Image.new('RGB', (max_width, img_height), color='white')
-    draw = ImageDraw.Draw(image)
-    y = 10
-    for line in lines:
-        draw.text((10, y), line, font=font, fill='black')
-        y += line_height
-    image.save(output_file)
+    try:
+        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as temp_pdf:
+            convert_docx_to_pdf(input_file, temp_pdf.name)
+        images = convert_from_path(temp_pdf.name, poppler_path=POPPLER_PATH)
+        if images:
+            images[0].save(output_file, 'PNG')
+            return True
+        return False
+    except Exception as e:
+        print(f"DOCX to PNG Error: {e}")
+        return False
+    finally:
+        if os.path.exists(temp_pdf.name):
+            os.remove(temp_pdf.name)
 
 def convert_docx_to_excel(input_file, output_file):
     doc = Document(input_file)
@@ -92,9 +112,7 @@ def convert_docx_to_excel(input_file, output_file):
         ws.cell(row=i, column=1, value=para.text)
     wb.save(output_file)
 
-# ========================
-# PPTX CONVERSIONS
-# ========================
+# PPTX to PDF
 def convert_pptx_to_pdf(input_file, output_file):
     pythoncom.CoInitialize()
     powerpoint = win32com.client.Dispatch("PowerPoint.Application")
@@ -104,6 +122,7 @@ def convert_pptx_to_pdf(input_file, output_file):
     powerpoint.Quit()
     pythoncom.CoUninitialize()
 
+# PPTX to ZIP of PNGs
 def convert_pptx_to_zip(input_file, output_file):
     presentation = None
     powerpoint = None
@@ -111,27 +130,21 @@ def convert_pptx_to_zip(input_file, output_file):
         pythoncom.CoInitialize()
         powerpoint = win32com.client.Dispatch("PowerPoint.Application")
         presentation = powerpoint.Presentations.Open(os.path.abspath(input_file), WithWindow=False)
-        
         with tempfile.TemporaryDirectory() as temp_dir:
             for i in range(1, presentation.Slides.Count + 1):
                 slide = presentation.Slides(i)
                 slide.Export(os.path.join(temp_dir, f"slide_{i}.png"), "PNG")
-            
             if not os.listdir(temp_dir):
                 raise RuntimeError("No slides were converted to PNG")
-            
             temp_zip = output_file + ".tmp"
             with zipfile.ZipFile(temp_zip, 'w', zipfile.ZIP_DEFLATED) as zip_file:
                 for img_name in os.listdir(temp_dir):
                     img_path = os.path.join(temp_dir, img_name)
                     zip_file.write(img_path, img_name)
-            
             if os.path.exists(output_file):
                 os.remove(output_file)
             os.rename(temp_zip, output_file)
-        
         return True
-        
     except Exception as e:
         if 'temp_zip' in locals() and os.path.exists(temp_zip):
             os.remove(temp_zip)
@@ -146,9 +159,59 @@ def convert_pptx_to_zip(input_file, output_file):
         except:
             pass
 
-# ========================
-# IMAGE CONVERSIONS
-# ========================
+# XLSX to PDF
+def convert_excel_to_pdf(input_file, output_file):
+    wb = openpyxl.load_workbook(input_file)
+    sheet = wb.active
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+    for row in sheet.iter_rows(values_only=True):
+        line = "\t".join(str(cell) for cell in row if cell is not None)
+        pdf.multi_cell(0, 10, line)
+    pdf.output(output_file)
+
+# XLSX to DOCX
+def convert_excel_to_docx(input_file, output_file):
+    wb = openpyxl.load_workbook(input_file)
+    sheet = wb.active
+    doc = Document()
+    for row in sheet.iter_rows(values_only=True):
+        line = "\t".join(str(cell) for cell in row if cell is not None)
+        doc.add_paragraph(line)
+    doc.save(output_file)
+
+# XLSX to TXT
+def convert_excel_to_txt(input_file, output_file):
+    wb = openpyxl.load_workbook(input_file)
+    sheet = wb.active
+    with open(output_file, 'w', encoding='utf-8') as f:
+        for row in sheet.iter_rows(values_only=True):
+            line = "\t".join(str(cell) for cell in row if cell is not None)
+            f.write(line + '\n')
+
+# XLSX to PNG (table visualization)
+def convert_excel_to_image(input_file, output_file):
+    try:
+        df = pd.read_excel(input_file)
+        plt.figure(figsize=(12, min(4 + len(df)*0.3, 20)))
+        ax = plt.gca()
+        ax.axis('off')
+        table = ax.table(cellText=df.values,
+                        colLabels=df.columns,
+                        cellLoc='center',
+                        loc='center')
+        table.auto_set_font_size(False)
+        table.set_fontsize(8)
+        table.scale(1, 1.5)
+        plt.savefig(output_file, bbox_inches='tight', dpi=300)
+        plt.close()
+        return True
+    except Exception as e:
+        print(f"Excel to PNG Error: {e}")
+        return False
+
+# PNG to TXT (OCR)
 def convert_png_to_txt(input_file, output_file):
     try:
         img = Image.open(input_file)
@@ -160,6 +223,7 @@ def convert_png_to_txt(input_file, output_file):
         print(f"OCR Error: {e}")
         return False
 
+# PNG/JPG to PDF
 def convert_image_to_pdf(input_file, output_file):
     try:
         image = Image.open(input_file)
@@ -177,6 +241,7 @@ def convert_image_to_pdf(input_file, output_file):
         print(f"Image to PDF Error: {e}")
         return False
 
+# PNG to JPG and JPG to PNG
 def convert_png_to_jpg(input_file, output_file):
     try:
         image = Image.open(input_file)
@@ -188,61 +253,16 @@ def convert_png_to_jpg(input_file, output_file):
         print(f"PNG to JPG Error: {e}")
         return False
 
-# ========================
-# EXCEL CONVERSIONS
-# ========================
-def convert_excel_to_pdf(input_file, output_file):
-    wb = openpyxl.load_workbook(input_file)
-    sheet = wb.active
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=12)
-    for row in sheet.iter_rows(values_only=True):
-        line = "\t".join(str(cell) for cell in row if cell is not None)
-        pdf.multi_cell(0, 10, line)
-    pdf.output(output_file)
+def convert_jpg_to_png(input_file, output_file):
+    try:
+        image = Image.open(input_file)
+        image.save(output_file, 'PNG')
+        return True
+    except Exception as e:
+        print(f"JPG to PNG Error: {e}")
+        return False
 
-def convert_excel_to_docx(input_file, output_file):
-    wb = openpyxl.load_workbook(input_file)
-    sheet = wb.active
-    doc = Document()
-    for row in sheet.iter_rows(values_only=True):
-        line = "\t".join(str(cell) for cell in row if cell is not None)
-        doc.add_paragraph(line)
-    doc.save(output_file)
-
-def convert_excel_to_txt(input_file, output_file):
-    wb = openpyxl.load_workbook(input_file)
-    sheet = wb.active
-    with open(output_file, 'w', encoding='utf-8') as f:
-        for row in sheet.iter_rows(values_only=True):
-            line = "\t".join(str(cell) for cell in row if cell is not None)
-            f.write(line + '\n')
-
-def convert_excel_to_image(input_file, output_file):
-    wb = openpyxl.load_workbook(input_file)
-    sheet = wb.active
-    lines = []
-    for row in sheet.iter_rows(values_only=True):
-        line = "\t".join(str(cell) for cell in row if cell is not None)
-        lines.append(line)
-    text = '\n'.join(lines)
-    font = ImageFont.load_default()
-    lines = text.split('\n')
-    max_width = max(font.getsize(line)[0] for line in lines) + 20
-    line_height = font.getsize('A')[1] + 5
-    img_height = line_height * len(lines) + 20
-    image = Image.new('RGB', (max_width, img_height), color='white')
-    draw = ImageDraw.Draw(image)
-    y = 10
-    for line in lines:
-        draw.text((10, y), line, font=font, fill='black')
-        y += line_height
-    image.save(output_file)
-
-# ========================
-# MAIN CONVERSION FUNCTION
-# ========================
+# Main Conversion Function
 def convert_file(input_file, output_file):
     input_ext = os.path.splitext(input_file)[1].lower()
     output_ext = os.path.splitext(output_file)[1].lower()
@@ -265,7 +285,7 @@ def convert_file(input_file, output_file):
         ('.png', '.pdf'): convert_image_to_pdf,
         ('.png', '.jpg'): convert_png_to_jpg,
         ('.jpg', '.pdf'): convert_image_to_pdf,
-        ('.jpg', '.png'): convert_png_to_jpg,
+        ('.jpg', '.png'): convert_jpg_to_png,
     }
 
     if input_ext == output_ext:
