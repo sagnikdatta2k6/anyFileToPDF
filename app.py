@@ -5,22 +5,17 @@ from file_converter import convert_file
 TEMP_DIR = "temp_files"
 os.makedirs(TEMP_DIR, exist_ok=True)
 
-st.title("Any File Converter - Convert to Other Formats")
+st.title("Universal File Converter")
 
 uploaded_file = st.file_uploader("Upload a file")
 
 if uploaded_file is not None:
-    # Supported output formats
     supported_formats = [".pdf", ".docx", ".xlsx", ".pptx", ".png", ".txt"]
-
-    # Get uploaded file extension
     uploaded_ext = os.path.splitext(uploaded_file.name)[1].lower()
-
-    # Exclude uploaded file's own extension from output options
     output_options = [ext for ext in supported_formats if ext != uploaded_ext]
 
     if not output_options:
-        st.warning("No supported output formats available for this file type.")
+        st.warning("No other output formats available for this file type.")
     else:
         output_format = st.selectbox("Select output format", output_options)
 
@@ -40,7 +35,7 @@ if uploaded_file is not None:
             st.error(f"Conversion failed: {e}")
 
         if success and os.path.exists(output_path):
-            st.success(f"File converted successfully to {output_format}!")
+            st.success(f"Converted to {output_format} successfully!")
             with open(output_path, "rb") as f:
                 mime_types = {
                     ".pdf": "application/pdf",
