@@ -5,53 +5,53 @@ from file_converter import convert_file
 TEMP_DIR = "temp_files"
 os.makedirs(TEMP_DIR, exist_ok=True)
 
-st.title("Custom File Converter")
+st.title("Professional Document Converter")
 
-uploaded_file = st.file_uploader("Upload a file")
+uploaded_file = st.file_uploader("Upload your file", type=[
+    'txt', 'docx', 'pptx', 'xlsx', 'jpg', 'jpeg', 'png'
+])
 
-if uploaded_file is not None:
-    # Supported output formats for each input type
-    conversion_options = {
-        '.txt': ['.pdf', '.docx', '.png'],
-        '.docx': ['.txt', '.pdf', '.png', '.xlsx'],
-        '.pptx': ['.pdf', '.png'],
-        '.xlsx': ['.pdf', '.docx', '.txt', '.png'],
-    }
+if uploaded_file:
     input_ext = os.path.splitext(uploaded_file.name)[1].lower()
-    output_options = conversion_options.get(input_ext, [])
-
-    if not output_options:
-        st.warning("No supported conversions for this file type.")
+    
+    conversion_options = {
+        '.docx': ['PDF', 'PNG', 'Excel'],
+        '.pptx': ['PDF', 'PNG'],
+        '.xlsx': ['PDF', 'PNG'],
+        '.txt': ['PDF'],
+        '.jpg': ['PDF', 'PNG'],
+        '.jpeg': ['PDF', 'PNG'],
+        '.png': ['PDF', 'JPG']
+    }
+    
+    ext_map = {
+        'PDF': '.pdf',
+        'PNG': '.png',
+        'Excel': '.xlsx',
+        'JPG': '.jpg'
+    }
+    
+    if input_ext not in conversion_options:
+        st.error("Unsupported file type")
     else:
-        output_format = st.selectbox("Convert to", output_options)
-
+        output_format = st.selectbox("Convert to:", conversion_options[input_ext])
+        output_ext = ext_map[output_format]
+        
         input_path = os.path.join(TEMP_DIR, uploaded_file.name)
         with open(input_path, "wb") as f:
             f.write(uploaded_file.getbuffer())
-        st.success("File uploaded.")
-
-        base_name, _ = os.path.splitext(uploaded_file.name)
-        output_file_name = base_name + output_format
-        output_path = os.path.join(TEMP_DIR, output_file_name)
-
-        if st.button("Convert"):
-            success = convert_file(input_path, output_path)
-            if success and os.path.exists(output_path):
-                st.success(f"Conversion successful! Download below.")
-                mime_types = {
-                    '.pdf': 'application/pdf',
-                    '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                    '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                    '.png': 'image/png',
-                    '.txt': 'text/plain',
-                }
-                mime_type = mime_types.get(output_format, 'application/octet-stream')
-                with open(output_path, 'rb') as f:
+        
+        base_name = os.path.splitext(uploaded_file.name)[0]
+        output_path = os.path.join(TEMP_DIR, f"{base_name}_converted{output_ext}")
+        
+        if st.button("Convert Now"):
+            if convert_file(input_path, output_path):
+                st.success("Conversion successful! Download your file:")
+                with open(output_path, "rb") as f:
                     st.download_button(
-                        label=f"Download {output_file_name}",
-                        data=f,
-                        file_name=output_file_name,
-                        mime=mime_type
+                        "Download File",
+                        f,
+                        file_name=os.path.basename(output_path)
                     )
             else:
-                st.error("Conversion failed or unsupported conversion.")
+                st.error("Conversion failed. Please check the file format.")
