@@ -13,7 +13,7 @@ SUPPORTED_FORMATS = {
     'xlsx': ['pdf', 'docx', 'txt', 'png'],
     'jpg': ['pdf', 'png'],
     'jpeg': ['pdf', 'png'],
-    'png': ['pdf', 'jpg']
+    'png': ['txt', 'pdf', 'jpg']
 }
 
 MIME_TYPES = {
@@ -42,14 +42,12 @@ def main():
             
         output_format = st.selectbox("Convert to:", options=output_formats)
         
-        # Use a truly unique filename in the system temp directory
         file_id = str(uuid.uuid4())
         temp_dir = tempfile.gettempdir()
         input_path = os.path.join(temp_dir, f"input_{file_id}{os.path.splitext(file_name)[1]}")
         output_file_name = f"{base_name}_converted.{output_format}"
         output_path = os.path.join(temp_dir, f"output_{file_id}.{output_format}")
 
-        # Save uploaded file
         try:
             with open(input_path, "wb") as f:
                 f.write(uploaded_file.getbuffer())
@@ -91,7 +89,6 @@ def main():
                     except Exception:
                         pass
             finally:
-                # Always cleanup input file after conversion
                 if os.path.exists(input_path):
                     try:
                         os.remove(input_path)

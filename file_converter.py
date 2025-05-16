@@ -3,6 +3,7 @@ import zipfile
 import tempfile
 import pythoncom
 import win32com.client
+import pytesseract
 from io import BytesIO
 from fpdf import FPDF
 from PIL import Image, ImageDraw, ImageFont
@@ -11,7 +12,12 @@ import openpyxl
 from pptx import Presentation
 import shutil
 
-# Text Conversions
+# Set Tesseract path (Windows users: change this to your Tesseract installation path)
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+
+# ========================
+# TEXT CONVERSIONS
+# ========================
 def convert_txt_to_pdf(input_file, output_file):
     with open(input_file, 'r', encoding='utf-8') as file:
         text = file.read()
@@ -44,7 +50,9 @@ def convert_txt_to_image(input_file, output_file):
         y += line_height
     image.save(output_file)
 
-# DOCX Conversions
+# ========================
+# DOCX CONVERSIONS
+# ========================
 def convert_docx_to_txt(input_file, output_file):
     doc = Document(input_file)
     with open(output_file, 'w', encoding='utf-8') as f:
@@ -84,7 +92,9 @@ def convert_docx_to_excel(input_file, output_file):
         ws.cell(row=i, column=1, value=para.text)
     wb.save(output_file)
 
-# PPTX Conversions
+# ========================
+# PPTX CONVERSIONS
+# ========================
 def convert_pptx_to_pdf(input_file, output_file):
     pythoncom.CoInitialize()
     powerpoint = win32com.client.Dispatch("PowerPoint.Application")
@@ -95,7 +105,6 @@ def convert_pptx_to_pdf(input_file, output_file):
     pythoncom.CoUninitialize()
 
 def convert_pptx_to_zip(input_file, output_file):
-    """Converts PPTX to ZIP archive containing all slides as PNGs with proper error handling."""
     presentation = None
     powerpoint = None
     try:
@@ -104,23 +113,19 @@ def convert_pptx_to_zip(input_file, output_file):
         presentation = powerpoint.Presentations.Open(os.path.abspath(input_file), WithWindow=False)
         
         with tempfile.TemporaryDirectory() as temp_dir:
-            # Export slides to temporary directory
             for i in range(1, presentation.Slides.Count + 1):
                 slide = presentation.Slides(i)
                 slide.Export(os.path.join(temp_dir, f"slide_{i}.png"), "PNG")
             
-            # Create ZIP file only if slides were exported
             if not os.listdir(temp_dir):
                 raise RuntimeError("No slides were converted to PNG")
             
-            # Create ZIP in temporary location first
             temp_zip = output_file + ".tmp"
             with zipfile.ZipFile(temp_zip, 'w', zipfile.ZIP_DEFLATED) as zip_file:
                 for img_name in os.listdir(temp_dir):
                     img_path = os.path.join(temp_dir, img_name)
                     zip_file.write(img_path, img_name)
             
-            # Replace final file only if successful
             if os.path.exists(output_file):
                 os.remove(output_file)
             os.rename(temp_zip, output_file)
@@ -128,7 +133,6 @@ def convert_pptx_to_zip(input_file, output_file):
         return True
         
     except Exception as e:
-        # Cleanup failed files
         if 'temp_zip' in locals() and os.path.exists(temp_zip):
             os.remove(temp_zip)
         raise RuntimeError(f"PPTX conversion failed: {str(e)}")
@@ -142,7 +146,51 @@ def convert_pptx_to_zip(input_file, output_file):
         except:
             pass
 
-# Excel Conversions
+# ========================
+# IMAGE CONVERSIONS
+# ========================
+def convert_png_to_txt(input_file, output_file):
+    try:
+        img = Image.open(input_file)
+        text = pytesseract.image_to_string(img)
+        with open(output_file, 'w', encoding='utf-8') as f:
+            f.write(text)
+        return True
+    except Exception as e:
+        print(f"OCR Error: {e}")
+        return False
+
+def convert_image_to_pdf(input_file, output_file):
+    try:
+        image = Image.open(input_file)
+        if image.mode != 'RGB':
+            image = image.convert('RGB')
+        pdf = FPDF(unit='pt', format=[image.width, image.height])
+        pdf.add_page()
+        temp_img = output_file + ".temp.jpg"
+        image.save(temp_img)
+        pdf.image(temp_img, 0, 0, image.width, image.height)
+        pdf.output(output_file)
+        os.remove(temp_img)
+        return True
+    except Exception as e:
+        print(f"Image to PDF Error: {e}")
+        return False
+
+def convert_png_to_jpg(input_file, output_file):
+    try:
+        image = Image.open(input_file)
+        if image.mode != 'RGB':
+            image = image.convert('RGB')
+        image.save(output_file, 'JPEG', quality=95)
+        return True
+    except Exception as e:
+        print(f"PNG to JPG Error: {e}")
+        return False
+
+# ========================
+# EXCEL CONVERSIONS
+# ========================
 def convert_excel_to_pdf(input_file, output_file):
     wb = openpyxl.load_workbook(input_file)
     sheet = wb.active
@@ -192,7 +240,9 @@ def convert_excel_to_image(input_file, output_file):
         y += line_height
     image.save(output_file)
 
-# Main Conversion Function
+# ========================
+# MAIN CONVERSION FUNCTION
+# ========================
 def convert_file(input_file, output_file):
     input_ext = os.path.splitext(input_file)[1].lower()
     output_ext = os.path.splitext(output_file)[1].lower()
@@ -211,6 +261,11 @@ def convert_file(input_file, output_file):
         ('.xlsx', '.docx'): convert_excel_to_docx,
         ('.xlsx', '.txt'): convert_excel_to_txt,
         ('.xlsx', '.png'): convert_excel_to_image,
+        ('.png', '.txt'): convert_png_to_txt,
+        ('.png', '.pdf'): convert_image_to_pdf,
+        ('.png', '.jpg'): convert_png_to_jpg,
+        ('.jpg', '.pdf'): convert_image_to_pdf,
+        ('.jpg', '.png'): convert_png_to_jpg,
     }
 
     if input_ext == output_ext:
@@ -238,4 +293,3 @@ def convert_file(input_file, output_file):
             else:
                 os.remove(output_file)
         raise RuntimeError(f"Conversion failed: {e}")
-    
