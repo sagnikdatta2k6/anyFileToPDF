@@ -63,13 +63,27 @@ def convert_pptx_to_pdf(input_file, output_file, format_type=32):
     try:
         powerpoint = comtypes.client.CreateObject("Powerpoint.Application")
         powerpoint.Visible = 1
+
         input_file_abs = os.path.abspath(input_file)
         output_file_abs = os.path.abspath(output_file)
+
+        # Ensure output file has .pdf extension
+        if not output_file_abs.lower().endswith('.pdf'):
+            output_file_abs += '.pdf'
+
+        print(f"Opening PowerPoint file: {input_file_abs}")
+        print(f"Saving PDF to: {output_file_abs}")
+
         presentation = powerpoint.Presentations.Open(input_file_abs, WithWindow=False)
         presentation.SaveAs(output_file_abs, format_type)
         presentation.Close()
         powerpoint.Quit()
-        print(f"Converted PowerPoint to PDF: {output_file_abs}")
+
+        if os.path.exists(output_file_abs):
+            print(f"Converted PowerPoint to PDF successfully: {output_file_abs}")
+        else:
+            print(f"Failed to create PDF at: {output_file_abs}")
+
     except Exception as e:
         print(f"Error converting PPTX to PDF: {e}")
         try:
@@ -93,11 +107,3 @@ def convert_file(input_file, output_file):
             convert_image_to_pdf(input_file, output_file)
         elif file_extension == '.docx':
             convert_docx_to_pdf(input_file, output_file)
-        elif file_extension == '.xlsx':
-            convert_excel_to_pdf(input_file, output_file)
-        elif file_extension == '.pptx':
-            convert_pptx_to_pdf(input_file, output_file)
-        else:
-            print(f"Unsupported input file type for PDF conversion: {file_extension}")
-    else:
-        print(f"Unsupported conversion from {file_extension} to {os.path.splitext(output_file)[1].lower()}")
