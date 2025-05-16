@@ -25,6 +25,14 @@ def convert_txt_to_pdf(input_file, output_file):
     pdf.output(output_file)
     print(f"Converted TXT to PDF: {output_file}")
 
+def convert_txt_to_docx(input_file, output_file):
+    with open(input_file, 'r', encoding='utf-8') as file:
+        text = file.read()
+    doc = Document()
+    doc.add_paragraph(text)
+    doc.save(output_file)
+    print(f"Converted TXT to DOCX: {output_file}")
+
 def convert_image_to_pdf(input_file, output_file):
     image = Image.open(input_file)
     pdf = image.convert("RGB")
@@ -40,6 +48,15 @@ def convert_docx_to_pdf(input_file, output_file):
         pdf.multi_cell(0, 10, para.text)
     pdf.output(output_file)
     print(f"Converted DOCX to PDF: {output_file}")
+
+def convert_docx_to_txt(input_file, output_file):
+    doc = Document(input_file)
+    full_text = []
+    for para in doc.paragraphs:
+        full_text.append(para.text)
+    with open(output_file, 'w', encoding='utf-8') as f:
+        f.write('\n'.join(full_text))
+    print(f"Converted DOCX to TXT: {output_file}")
 
 def convert_excel_to_pdf(input_file, output_file):
     wb = openpyxl.load_workbook(input_file)
@@ -97,31 +114,63 @@ def convert_file(input_file, output_file):
     input_file = os.path.abspath(input_file)
     output_file = os.path.abspath(output_file)
 
-    file_extension = os.path.splitext(input_file)[1].lower()
-    output_extension = os.path.splitext(output_file)[1].lower()
+    input_ext = os.path.splitext(input_file)[1].lower()
+    output_ext = os.path.splitext(output_file)[1].lower()
 
     if not os.path.exists(input_file):
         print(f"Error: File '{input_file}' not found.")
         return False
 
-    if output_extension == '.pdf':
-        if file_extension == '.txt':
+    # TXT conversions
+    if input_ext == '.txt':
+        if output_ext == '.pdf':
             convert_txt_to_pdf(input_file, output_file)
             return True
-        elif file_extension in ['.jpg', '.jpeg', '.png']:
-            convert_image_to_pdf(input_file, output_file)
+        elif output_ext == '.docx':
+            convert_txt_to_docx(input_file, output_file)
             return True
-        elif file_extension == '.docx':
+        else:
+            print(f"Unsupported output format for TXT: {output_ext}")
+            return False
+
+    # DOCX conversions
+    elif input_ext == '.docx':
+        if output_ext == '.pdf':
             convert_docx_to_pdf(input_file, output_file)
             return True
-        elif file_extension == '.xlsx':
+        elif output_ext == '.txt':
+            convert_docx_to_txt(input_file, output_file)
+            return True
+        else:
+            print(f"Unsupported output format for DOCX: {output_ext}")
+            return False
+
+    # Image to PDF
+    elif input_ext in ['.jpg', '.jpeg', '.png']:
+        if output_ext == '.pdf':
+            convert_image_to_pdf(input_file, output_file)
+            return True
+        else:
+            print(f"Unsupported output format for image: {output_ext}")
+            return False
+
+    # Excel to PDF
+    elif input_ext == '.xlsx':
+        if output_ext == '.pdf':
             convert_excel_to_pdf(input_file, output_file)
             return True
-        elif file_extension == '.pptx':
+        else:
+            print(f"Unsupported output format for Excel: {output_ext}")
+            return False
+
+    # PPTX to PDF
+    elif input_ext == '.pptx':
+        if output_ext == '.pdf':
             return convert_pptx_to_pdf(input_file, output_file)
         else:
-            print(f"Unsupported input file type for PDF conversion: {file_extension}")
+            print(f"Unsupported output format for PPTX: {output_ext}")
             return False
+
     else:
-        print(f"Unsupported output format: {output_extension}")
+        print(f"Unsupported input file type: {input_ext}")
         return False
