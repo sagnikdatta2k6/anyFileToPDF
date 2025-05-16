@@ -26,9 +26,9 @@ MIME_TYPES = {
     'zip': 'application/zip'
 }
 
-st.title("Universal File Converter")
-
 def main():
+    st.title("Universal File Converter")
+    
     uploaded_file = st.file_uploader("Upload a file", type=list(SUPPORTED_FORMATS.keys()))
     
     if uploaded_file:
@@ -36,65 +36,72 @@ def main():
         input_ext = os.path.splitext(file_name)[1].lower().lstrip('.')
         base_name = os.path.splitext(file_name)[0]
         output_formats = SUPPORTED_FORMATS.get(input_ext, [])
+        
         if not output_formats:
-            st.error("Unsupported file type")
+            st.error("This file type is not supported")
             return
             
         output_format = st.selectbox("Convert to:", options=output_formats)
         
-        file_id = str(uuid.uuid4())
+        # File paths with unique IDs
+        file_id = uuid.uuid4().hex
         temp_dir = tempfile.gettempdir()
         input_path = os.path.join(temp_dir, f"input_{file_id}{os.path.splitext(file_name)[1]}")
-        output_file_name = f"{base_name}_converted.{output_format}"
         output_path = os.path.join(temp_dir, f"output_{file_id}.{output_format}")
-
+        
+        # Save uploaded file
         try:
             with open(input_path, "wb") as f:
                 f.write(uploaded_file.getbuffer())
-        except PermissionError:
-            st.error("❌ Permission denied while saving the uploaded file. Please close any open files in the temp directory or run as administrator.")
+            st.info(f"📁 Temporary file saved: {input_path}")
+        except Exception as e:
+            st.error(f"❌ Failed to save file: {str(e)}")
             return
         
-        if st.button("Convert File"):
+        if st.button("Convert Now"):
             try:
                 if os.path.exists(output_path):
                     os.remove(output_path)
+                
                 success = convert_file(input_path, output_path)
                 
-                if success:
-                    # For ZIP, verify contents before allowing download
+                if success and os.path.exists(output_path):
+                    # Verify ZIP contents
                     if output_format == 'zip':
-                        with open(output_path, 'rb') as f:
-                            zip_bytes = f.read()
-                            with zipfile.ZipFile(BytesIO(zip_bytes)) as zf:
-                                if len(zf.namelist()) == 0:
-                                    raise ValueError("Empty ZIP file generated")
+                        with zipfile.ZipFile(output_path, 'r') as zf:
+                            if len(zf.namelist()) == 0:
+                                raise ValueError("ZIP file is empty")
                     
-                    st.success("✅ Conversion successful!")
+                    # Prepare download
+                    st.success("Conversion successful! Download your file:")
                     mime_type = MIME_TYPES.get(output_format, 'application/octet-stream')
                     with open(output_path, 'rb') as f:
                         st.download_button(
-                            label=f"Download {output_file_name}",
+                            label=f"Download {os.path.basename(output_path)}",
                             data=f,
-                            file_name=output_file_name,
+                            file_name=os.path.basename(output_path),
                             mime=mime_type
                         )
                 else:
-                    st.error("❌ Conversion failed. Please check the file format.")
-                
+                    st.error("Conversion failed - no output file created")
+                    
             except Exception as e:
-                st.error(f"❌ Conversion failed: {str(e)}")
-                if os.path.exists(output_path):
-                    try:
-                        os.remove(output_path)
-                    except Exception:
-                        pass
+                st.error(f"""
+                ❌ Conversion failed!
+                **Reason:** {str(e)}
+                **Technical Details:**  
+                ```
+                {traceback.format_exc()}
+                ```
+                """)
             finally:
-                if os.path.exists(input_path):
-                    try:
-                        os.remove(input_path)
-                    except Exception:
-                        pass
+                # Cleanup
+                for path in [input_path, output_path]:
+                    if path and os.path.exists(path):
+                        try:
+                            os.remove(path)
+                        except:
+                            pass
 
 if __name__ == "__main__":
     main()
