@@ -1,12 +1,11 @@
 import streamlit as st
 import os
+import tempfile
+import uuid
+import zipfile
+from io import BytesIO
 from file_converter import convert_file
 
-# Configuration
-TEMP_DIR = "temp_files"
-os.makedirs(TEMP_DIR, exist_ok=True)
-
-# Supported formats
 SUPPORTED_FORMATS = {
     'txt': ['pdf', 'docx', 'png'],
     'docx': ['txt', 'pdf', 'png', 'xlsx'],
@@ -17,7 +16,6 @@ SUPPORTED_FORMATS = {
     'png': ['pdf', 'jpg']
 }
 
-# MIME types for download
 MIME_TYPES = {
     'pdf': 'application/pdf',
     'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -34,12 +32,9 @@ def main():
     uploaded_file = st.file_uploader("Upload a file", type=SUPPORTED_FORMATS.keys())
     
     if uploaded_file:
-        # Get file info
         file_name = uploaded_file.name
         input_ext = os.path.splitext(file_name)[1].lower().lstrip('.')
         base_name = os.path.splitext(file_name)[0]
-        
-        # Show output format selector
         output_formats = SUPPORTED_FORMATS.get(input_ext, [])
         if not output_formats:
             st.error("Unsupported file type")
@@ -47,27 +42,28 @@ def main():
             
         output_format = st.selectbox("Convert to:", options=output_formats)
         
-        # Prepare file paths
-        input_path = os.path.join(TEMP_DIR, file_name)
+        # Use a truly unique filename in the system temp directory
+        file_id = str(uuid.uuid4())
+        temp_dir = tempfile.gettempdir()
+        input_path = os.path.join(temp_dir, f"input_{file_id}{os.path.splitext(file_name)[1]}")
         output_file_name = f"{base_name}_converted.{output_format}"
-        output_path = os.path.join(TEMP_DIR, output_file_name)
-        
+        output_path = os.path.join(temp_dir, f"output_{file_id}.{output_format}")
+
         # Save uploaded file
-        with open(input_path, "wb") as f:
-            f.write(uploaded_file.getbuffer())
+        try:
+            with open(input_path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
+        except PermissionError:
+            st.error("❌ Permission denied while saving the uploaded file. Please close any open files in the temp directory or run as administrator.")
+            return
         
-        # Conversion button
         if st.button("Convert File"):
             try:
-                # Clear previous output
                 if os.path.exists(output_path):
                     os.remove(output_path)
-                
-                # Perform conversion
                 success = convert_file(input_path, output_path)
                 
                 if success:
-                    # Verify ZIP contents
                     if output_format == 'zip':
                         with open(output_path, 'rb') as f:
                             zip_bytes = f.read()
@@ -76,8 +72,6 @@ def main():
                                     raise ValueError("Empty ZIP file generated")
                     
                     st.success("✅ Conversion successful!")
-                    
-                    # Show download button
                     mime_type = MIME_TYPES.get(output_format, 'application/octet-stream')
                     with open(output_path, 'rb') as f:
                         st.download_button(
@@ -86,12 +80,23 @@ def main():
                             file_name=output_file_name,
                             mime=mime_type
                         )
+                else:
+                    st.error("❌ Conversion failed. Please check the file format.")
                 
             except Exception as e:
                 st.error(f"❌ Conversion failed: {str(e)}")
-                # Cleanup failed output
                 if os.path.exists(output_path):
-                    os.remove(output_path)
+                    try:
+                        os.remove(output_path)
+                    except Exception:
+                        pass
+            finally:
+                # Always cleanup input file after conversion
+                if os.path.exists(input_path):
+                    try:
+                        os.remove(input_path)
+                    except Exception:
+                        pass
 
 if __name__ == "__main__":
     main()
