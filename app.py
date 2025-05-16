@@ -10,7 +10,7 @@ st.title("Universal File Converter")
 uploaded_file = st.file_uploader("Upload a file")
 
 if uploaded_file is not None:
-    supported_formats = [".pdf", ".docx", ".xlsx", ".pptx", ".png", ".txt"]
+    supported_formats = ['.pdf', '.docx', '.txt']  # Extend this list as you add conversions
     uploaded_ext = os.path.splitext(uploaded_file.name)[1].lower()
     output_options = [ext for ext in supported_formats if ext != uploaded_ext]
 
@@ -28,25 +28,17 @@ if uploaded_file is not None:
         output_file_name = base_name + output_format
         output_path = os.path.join(TEMP_DIR, output_file_name)
 
-        success = False
-        try:
-            success = convert_file(input_path, output_path)
-        except Exception as e:
-            st.error(f"Conversion failed: {e}")
+        success = convert_file(input_path, output_path)
 
         if success and os.path.exists(output_path):
             st.success(f"Converted to {output_format} successfully!")
-            with open(output_path, "rb") as f:
-                mime_types = {
-                    ".pdf": "application/pdf",
-                    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                    ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-                    ".png": "image/png",
-                    ".txt": "text/plain",
-                }
-                mime_type = mime_types.get(output_format, "application/octet-stream")
-
+            mime_types = {
+                '.pdf': 'application/pdf',
+                '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                '.txt': 'text/plain',
+            }
+            mime_type = mime_types.get(output_format, 'application/octet-stream')
+            with open(output_path, 'rb') as f:
                 st.download_button(
                     label=f"Download {output_file_name}",
                     data=f,
