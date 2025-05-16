@@ -15,7 +15,6 @@ try:
 except ImportError:
     POWERPOINT_INSTALLED = False
 
-# TXT to PDF
 def convert_txt_to_pdf(input_file, output_file):
     with open(input_file, 'r', encoding='utf-8') as file:
         text = file.read()
@@ -27,7 +26,6 @@ def convert_txt_to_pdf(input_file, output_file):
     pdf.output(output_file)
     print(f"Converted TXT to PDF: {output_file}")
 
-# TXT to DOCX
 def convert_txt_to_docx(input_file, output_file):
     with open(input_file, 'r', encoding='utf-8') as file:
         text = file.read()
@@ -36,14 +34,12 @@ def convert_txt_to_docx(input_file, output_file):
     doc.save(output_file)
     print(f"Converted TXT to DOCX: {output_file}")
 
-# Image to PDF
 def convert_image_to_pdf(input_file, output_file):
     image = Image.open(input_file)
     pdf = image.convert("RGB")
     pdf.save(output_file)
     print(f"Converted Image to PDF: {output_file}")
 
-# DOCX to PDF
 def convert_docx_to_pdf(input_file, output_file):
     doc = Document(input_file)
     pdf = FPDF()
@@ -54,7 +50,6 @@ def convert_docx_to_pdf(input_file, output_file):
     pdf.output(output_file)
     print(f"Converted DOCX to PDF: {output_file}")
 
-# DOCX to TXT
 def convert_docx_to_txt(input_file, output_file):
     doc = Document(input_file)
     full_text = []
@@ -64,7 +59,6 @@ def convert_docx_to_txt(input_file, output_file):
         f.write('\n'.join(full_text))
     print(f"Converted DOCX to TXT: {output_file}")
 
-# Excel to PDF
 def convert_excel_to_pdf(input_file, output_file):
     wb = openpyxl.load_workbook(input_file)
     sheet = wb.active
@@ -77,7 +71,6 @@ def convert_excel_to_pdf(input_file, output_file):
     pdf.output(output_file)
     print(f"Converted Excel to PDF: {output_file}")
 
-# PPTX to PDF (Windows only)
 def convert_pptx_to_pdf(input_file, output_file):
     if not POWERPOINT_INSTALLED:
         print("Error: comtypes module not installed. PowerPoint conversion will not work.")
@@ -118,7 +111,6 @@ def convert_pptx_to_pdf(input_file, output_file):
             pass
         return False
 
-# PDF to DOCX (images)
 def convert_pdf_to_docx(input_file, output_file):
     doc = Document()
     pdf = fitz.open(input_file)
@@ -133,7 +125,6 @@ def convert_pdf_to_docx(input_file, output_file):
     doc.save(output_file)
     print(f"Converted PDF to DOCX with images: {output_file}")
 
-# PDF to PPTX (images)
 def convert_pdf_to_pptx(input_file, output_file):
     prs = Presentation()
     blank_slide_layout = prs.slide_layouts[6]
@@ -149,7 +140,6 @@ def convert_pdf_to_pptx(input_file, output_file):
     prs.save(output_file)
     print(f"Converted PDF to PPTX with images: {output_file}")
 
-# PDF to Excel (extract tables)
 def convert_pdf_to_excel(input_file, output_file):
     with pdfplumber.open(input_file) as pdf:
         wb = openpyxl.Workbook()
@@ -163,7 +153,6 @@ def convert_pdf_to_excel(input_file, output_file):
         wb.save(output_file)
         print(f"Converted PDF tables to Excel: {output_file}")
 
-# Main conversion dispatcher
 def convert_file(input_file, output_file):
     input_file = os.path.abspath(input_file)
     output_file = os.path.abspath(output_file)
