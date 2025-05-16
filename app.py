@@ -8,10 +8,10 @@ from io import BytesIO
 from file_converter import convert_file
 
 SUPPORTED_FORMATS = {
-    'txt': ['pdf', 'docx', 'png'],
-    'docx': ['txt', 'pdf', 'png', 'xlsx'],
+    'txt': ['pdf', 'docx'],
+    'docx': ['txt', 'pdf', 'xlsx'],
     'pptx': ['pdf', 'zip'],
-    'xlsx': ['pdf', 'docx', 'txt', 'png'],
+    'xlsx': ['pdf', 'docx', 'txt'],
     'jpg': ['pdf', 'png'],
     'jpeg': ['pdf', 'png'],
     'png': ['txt', 'pdf', 'jpg']

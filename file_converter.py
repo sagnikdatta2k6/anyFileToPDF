@@ -4,7 +4,6 @@ import tempfile
 import pythoncom
 import win32com.client
 import pytesseract
-import textwrap
 import pandas as pd
 import matplotlib
 matplotlib.use('Agg')
@@ -18,7 +17,6 @@ import openpyxl
 import shutil
 import traceback
 
-# Set these paths as needed for your system:
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 POPPLER_PATH = r'C:\Program Files\poppler-23.11.0\Library\bin'  # Update if needed
 
@@ -31,7 +29,6 @@ def convert_txt_to_pdf(input_file, output_file):
         pdf.set_font("Arial", size=12)
         pdf.multi_cell(0, 10, text)
         pdf.output(output_file)
-        print(f"[TXT→PDF] Created: {output_file}, Exists? {os.path.exists(output_file)}")
         return True
     except Exception as e:
         print(f"[TXT→PDF] Error: {e}")
@@ -45,44 +42,9 @@ def convert_txt_to_docx(input_file, output_file):
         doc = Document()
         doc.add_paragraph(text)
         doc.save(output_file)
-        print(f"[TXT→DOCX] Created: {output_file}, Exists? {os.path.exists(output_file)}")
         return True
     except Exception as e:
         print(f"[TXT→DOCX] Error: {e}")
-        traceback.print_exc()
-        return False
-
-def convert_txt_to_image(input_file, output_file):
-    try:
-        with open(input_file, 'r', encoding='utf-8') as file:
-            text = file.read()
-        font_path = "cour.ttf" if os.path.exists("cour.ttf") else None
-        font_size = 14
-        line_spacing = 1.2
-        margin = 20
-        chars_per_line = 80
-        lines = []
-        for paragraph in text.split('\n'):
-            lines.extend(textwrap.wrap(paragraph, width=chars_per_line, replace_whitespace=False))
-        if font_path:
-            font = ImageFont.truetype(font_path, font_size)
-        else:
-            font = ImageFont.load_default()
-        max_width = max(font.getsize(line)[0] for line in lines) if lines else 0
-        total_height = int(len(lines) * font_size * line_spacing)
-        img_width = max_width + 2*margin
-        img_height = total_height + 2*margin
-        image = Image.new('RGB', (img_width, img_height), color='white')
-        draw = ImageDraw.Draw(image)
-        y = margin
-        for line in lines:
-            draw.text((margin, y), line, font=font, fill='black')
-            y += int(font_size * line_spacing)
-        image.save(output_file)
-        print(f"[TXT→PNG] Created: {output_file}, Exists? {os.path.exists(output_file)}")
-        return True
-    except Exception as e:
-        print(f"[TXT→PNG] Error: {e}")
         traceback.print_exc()
         return False
 
@@ -92,7 +54,6 @@ def convert_docx_to_txt(input_file, output_file):
         with open(output_file, 'w', encoding='utf-8') as f:
             for para in doc.paragraphs:
                 f.write(para.text + '\n')
-        print(f"[DOCX→TXT] Created: {output_file}, Exists? {os.path.exists(output_file)}")
         return True
     except Exception as e:
         print(f"[DOCX→TXT] Error: {e}")
@@ -108,33 +69,11 @@ def convert_docx_to_pdf(input_file, output_file):
         for para in doc.paragraphs:
             pdf.multi_cell(0, 10, para.text)
         pdf.output(output_file)
-        print(f"[DOCX→PDF] Created: {output_file}, Exists? {os.path.exists(output_file)}")
         return True
     except Exception as e:
         print(f"[DOCX→PDF] Error: {e}")
         traceback.print_exc()
         return False
-
-def convert_docx_to_image(input_file, output_file):
-    temp_pdf = None
-    try:
-        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as temp_pdf:
-            convert_docx_to_pdf(input_file, temp_pdf.name)
-        print(f"[DOCX→PNG] Intermediate PDF: {temp_pdf.name}, Exists? {os.path.exists(temp_pdf.name)}")
-        images = convert_from_path(temp_pdf.name, poppler_path=POPPLER_PATH)
-        if images:
-            images[0].save(output_file, 'PNG')
-            print(f"[DOCX→PNG] Created: {output_file}, Exists? {os.path.exists(output_file)}")
-            return True
-        print("[DOCX→PNG] No images generated from PDF!")
-        return False
-    except Exception as e:
-        print(f"[DOCX→PNG] Error: {e}")
-        traceback.print_exc()
-        return False
-    finally:
-        if temp_pdf and os.path.exists(temp_pdf.name):
-            os.remove(temp_pdf.name)
 
 def convert_docx_to_excel(input_file, output_file):
     try:
@@ -144,7 +83,6 @@ def convert_docx_to_excel(input_file, output_file):
         for i, para in enumerate(doc.paragraphs, start=1):
             ws.cell(row=i, column=1, value=para.text)
         wb.save(output_file)
-        print(f"[DOCX→XLSX] Created: {output_file}, Exists? {os.path.exists(output_file)}")
         return True
     except Exception as e:
         print(f"[DOCX→XLSX] Error: {e}")
@@ -160,7 +98,6 @@ def convert_pptx_to_pdf(input_file, output_file):
         presentation.Close()
         powerpoint.Quit()
         pythoncom.CoUninitialize()
-        print(f"[PPTX→PDF] Created: {output_file}, Exists? {os.path.exists(output_file)}")
         return True
     except Exception as e:
         print(f"[PPTX→PDF] Error: {e}")
@@ -188,7 +125,6 @@ def convert_pptx_to_zip(input_file, output_file):
             if os.path.exists(output_file):
                 os.remove(output_file)
             os.rename(temp_zip, output_file)
-        print(f"[PPTX→ZIP] Created: {output_file}, Exists? {os.path.exists(output_file)}")
         return True
     except Exception as e:
         if 'temp_zip' in locals() and os.path.exists(temp_zip):
@@ -217,7 +153,6 @@ def convert_excel_to_pdf(input_file, output_file):
             line = "\t".join(str(cell) for cell in row if cell is not None)
             pdf.multi_cell(0, 10, line)
         pdf.output(output_file)
-        print(f"[XLSX→PDF] Created: {output_file}, Exists? {os.path.exists(output_file)}")
         return True
     except Exception as e:
         print(f"[XLSX→PDF] Error: {e}")
@@ -233,7 +168,6 @@ def convert_excel_to_docx(input_file, output_file):
             line = "\t".join(str(cell) for cell in row if cell is not None)
             doc.add_paragraph(line)
         doc.save(output_file)
-        print(f"[XLSX→DOCX] Created: {output_file}, Exists? {os.path.exists(output_file)}")
         return True
     except Exception as e:
         print(f"[XLSX→DOCX] Error: {e}")
@@ -248,29 +182,9 @@ def convert_excel_to_txt(input_file, output_file):
             for row in sheet.iter_rows(values_only=True):
                 line = "\t".join(str(cell) for cell in row if cell is not None)
                 f.write(line + '\n')
-        print(f"[XLSX→TXT] Created: {output_file}, Exists? {os.path.exists(output_file)}")
         return True
     except Exception as e:
         print(f"[XLSX→TXT] Error: {e}")
-        traceback.print_exc()
-        return False
-
-def convert_excel_to_image(input_file, output_file):
-    try:
-        df = pd.read_excel(input_file)
-        plt.figure(figsize=(12, min(4 + len(df)*0.3, 20)))
-        ax = plt.gca()
-        ax.axis('off')
-        table = ax.table(cellText=df.values, colLabels=df.columns, cellLoc='center', loc='center')
-        table.auto_set_font_size(False)
-        table.set_fontsize(8)
-        table.scale(1, 1.5)
-        plt.savefig(output_file, bbox_inches='tight', dpi=300)
-        plt.close()
-        print(f"[XLSX→PNG] Created: {output_file}, Exists? {os.path.exists(output_file)}")
-        return True
-    except Exception as e:
-        print(f"[XLSX→PNG] Error: {e}")
         traceback.print_exc()
         return False
 
@@ -280,7 +194,6 @@ def convert_png_to_txt(input_file, output_file):
         text = pytesseract.image_to_string(img)
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write(text)
-        print(f"[PNG→TXT] Created: {output_file}, Exists? {os.path.exists(output_file)}")
         return True
     except Exception as e:
         print(f"OCR Error: {e}")
@@ -299,7 +212,6 @@ def convert_image_to_pdf(input_file, output_file):
         pdf.image(temp_img, 0, 0, image.width, image.height)
         pdf.output(output_file)
         os.remove(temp_img)
-        print(f"[IMG→PDF] Created: {output_file}, Exists? {os.path.exists(output_file)}")
         return True
     except Exception as e:
         print(f"Image to PDF Error: {e}")
@@ -312,7 +224,6 @@ def convert_png_to_jpg(input_file, output_file):
         if image.mode != 'RGB':
             image = image.convert('RGB')
         image.save(output_file, 'JPEG', quality=95)
-        print(f"[PNG→JPG] Created: {output_file}, Exists? {os.path.exists(output_file)}")
         return True
     except Exception as e:
         print(f"PNG to JPG Error: {e}")
@@ -323,7 +234,6 @@ def convert_jpg_to_png(input_file, output_file):
     try:
         image = Image.open(input_file)
         image.save(output_file, 'PNG')
-        print(f"[JPG→PNG] Created: {output_file}, Exists? {os.path.exists(output_file)}")
         return True
     except Exception as e:
         print(f"JPG to PNG Error: {e}")
@@ -337,17 +247,14 @@ def convert_file(input_file, output_file):
     conversion_map = {
         ('.txt', '.pdf'): convert_txt_to_pdf,
         ('.txt', '.docx'): convert_txt_to_docx,
-        ('.txt', '.png'): convert_txt_to_image,
         ('.docx', '.txt'): convert_docx_to_txt,
         ('.docx', '.pdf'): convert_docx_to_pdf,
-        ('.docx', '.png'): convert_docx_to_image,
         ('.docx', '.xlsx'): convert_docx_to_excel,
         ('.pptx', '.pdf'): convert_pptx_to_pdf,
         ('.pptx', '.zip'): convert_pptx_to_zip,
         ('.xlsx', '.pdf'): convert_excel_to_pdf,
         ('.xlsx', '.docx'): convert_excel_to_docx,
         ('.xlsx', '.txt'): convert_excel_to_txt,
-        ('.xlsx', '.png'): convert_excel_to_image,
         ('.png', '.txt'): convert_png_to_txt,
         ('.png', '.pdf'): convert_image_to_pdf,
         ('.png', '.jpg'): convert_png_to_jpg,
