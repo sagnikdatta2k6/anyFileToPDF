@@ -1,8 +1,8 @@
 import os
 from PIL import Image
-import aspose.words as aw
-import aspose.slides as slides
-import aspose.cells as ac
+from asposewords import Document
+from asposeslides import Presentation
+from asposecells import Workbook
 from io import BytesIO
 
 # DOCX conversions
